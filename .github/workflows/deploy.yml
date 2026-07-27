@@ -1,0 +1,26 @@
+name: CloudHubPk CI/Cd Pipeline
+on:
+  push:
+    branches:
+      - main
+  jobs:
+    deploy:
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Docker Login
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/cloudhup-app:latest .
+      - name: SSH into EC2 and Deploy
+        uses: applyboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+         
+         script: |
+           docker stop cloudhub-container || true
+           docker rm cloudhub-container || true
+           docker pull ${{ secrets.DOCKER_USERNAME }}/cloudhub-app:latest
+           docker run -d \ --name cloudhub container \ -p 5000:5000 \ ${{ secrets.DOCKER_USERNAME }}/cloudhub-app:latest       
